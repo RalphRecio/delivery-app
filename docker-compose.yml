@@ -1,0 +1,132 @@
+# Full local stack: PostgreSQL + Redis, the Laravel API (with its queue worker
+# and scheduler) and the Expo web dev server. Source folders are bind-mounted,
+# so edits apply immediately with no rebuild.
+#
+# PostGIS image: imresamu/postgis is the PostGIS Docker maintainer's multi-arch build;
+# the official postgis/postgis tag ships amd64 only and does not run natively on Apple Silicon.
+# Host ports are offset (5440 / 6390) so they never collide with other local projects;
+# the API (8000) and the app (8082) keep the ports the host-run servers used, so the
+# dev tunnel and the app's .env keep working either way.
+services:
+  postgres:
+    image: imresamu/postgis:17-3.5
+    container_name: delivery-app-postgres
+    environment:
+      POSTGRES_DB: delivery_app
+      POSTGRES_USER: delivery
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5440:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U delivery -d delivery_app"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: delivery-app-redis
+    ports:
+      - "6390:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # backend/.env is read from the bind mount, so it stays the single place for
+  # settings. Only the container wiring is overridden here: inside the compose
+  # network the services are reached by name on their internal ports.
+  # `serve --no-reload` matters: without it artisan strips these overrides from
+  # the server process (so it can restart on .env edits) and the API would try
+  # the host's 127.0.0.1 addresses. .env edits still apply per request.
+  api: &php
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    image: delivery-app-php
+    container_name: delivery-app-api
+    command: php artisan serve --host=0.0.0.0 --port=8000 --no-reload
+    working_dir: /var/www/html
+    environment: &php-env
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - ./backend:/var/www/html
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@file_get_contents(\"http://127.0.0.1:8000/api/v1/health\") === false ? 1 : 0);'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  queue:
+    <<: *php
+    container_name: delivery-app-queue
+    command: php artisan queue:work --tries=3 --timeout=90
+    environment:
+      <<: *php-env
+      RUN_MIGRATIONS: "0"
+    ports: []
+    healthcheck:
+      disable: true
+    depends_on:
+      api:
+        condition: service_healthy
+
+  scheduler:
+    <<: *php
+    container_name: delivery-app-scheduler
+    command: php artisan schedule:work
+    environment:
+      <<: *php-env
+      RUN_MIGRATIONS: "0"
+    ports: []
+    healthcheck:
+      disable: true
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Expo web on http://localhost:8082. Metro proxies /api/* to the API container
+  # (metro.config.js), so the browser never needs CORS or a second origin.
+  # For a phone, run `npx expo start` on the host instead.
+  app:
+    build:
+      context: .
+      dockerfile: docker/node/Dockerfile
+    image: delivery-app-node
+    container_name: delivery-app-web
+    command: npx expo start --web --port 8082
+    working_dir: /app
+    environment:
+      API_PROXY_TARGET: http://api:8000
+      # No TTY is attached, so Expo skips its key prompts; CI must stay unset
+      # or Metro disables file watching and hot reload.
+      EXPO_NO_TELEMETRY: "1"
+    volumes:
+      - ./app:/app
+      - app-node-modules:/app/node_modules
+    ports:
+      - "8082:8082"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  redis-data:
+  app-node-modules:

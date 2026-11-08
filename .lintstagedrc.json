@@ -1,0 +1,5 @@
+{
+  "backend/**/*.php": "backend/vendor/bin/pint --config backend/pint.json",
+  "app/**/*.{ts,tsx,js}": ["npm --prefix app run lint:fix --", "npm --prefix app run format --"],
+  "app/**/*.{json,md}": "npm --prefix app run format --"
+}

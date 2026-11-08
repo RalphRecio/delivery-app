@@ -1,0 +1,14 @@
+{
+  "name": "delivery-app",
+  "private": true,
+  "description": "Git hooks and commit conventions for the monorepo. Application code lives in backend/ and app/.",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2"
+  }
+}

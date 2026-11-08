@@ -1,0 +1,79 @@
+# Gitea Actions workflow (GitHub Actions compatible syntax).
+# Order per job: lint -> static analysis -> tests. Both jobs run in parallel.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (Pint, Larastan, Pest)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: imresamu/postgis:17-3.5
+        env:
+          POSTGRES_DB: delivery_app_test
+          POSTGRES_USER: delivery
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5440:5432
+        options: >-
+          --health-cmd "pg_isready -U delivery -d delivery_app_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: pdo_pgsql, pgsql, bcmath, intl, mbstring
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare environment
+        run: cp .env.example .env && php artisan key:generate --no-interaction
+
+      - name: Lint (Pint)
+        run: composer run lint
+
+      - name: Static analysis (Larastan)
+        run: composer run analyse
+
+      - name: Tests (Pest)
+        run: composer run test
+
+  app:
+    name: App (ESLint, TypeScript, Jest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (ESLint + Prettier)
+        run: npm run lint
+
+      - name: Static analysis (TypeScript)
+        run: npm run typecheck
+
+      - name: Tests (Jest)
+        run: npm test
