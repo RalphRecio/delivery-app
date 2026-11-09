@@ -7,7 +7,8 @@ export interface Portal {
   /** Null when the role cannot sign up itself (admins are created by admins). */
   registerHref: string | null;
   homeHref: string;
-  signInBlurb: string;
+  /** Line under the logo on the sign-in page; null for none. */
+  signInBlurb: string | null;
 }
 
 export const PORTALS: Readonly<Record<UserRole, Portal>> = {
@@ -30,7 +31,7 @@ export const PORTALS: Readonly<Record<UserRole, Portal>> = {
     loginHref: '/admin/login',
     registerHref: null,
     homeHref: '/admin',
-    signInBlurb: 'Bookings, tariffs and accounts.',
+    signInBlurb: null,
   },
 };
 

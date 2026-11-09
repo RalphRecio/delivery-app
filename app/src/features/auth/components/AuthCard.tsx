@@ -9,8 +9,8 @@ import { Text } from '@/shared/ui';
 import { BrandMark } from './BrandMark';
 
 interface AuthCardProps {
-  /** One line under the brand mark saying what this page is for. */
-  blurb: string;
+  /** One line under the brand mark saying what this page is for; null for none. */
+  blurb: string | null;
 }
 
 /** Brand mark and blurb above the form: flat on phones, a white card on desktop. */
@@ -21,7 +21,7 @@ export function AuthCard({ blurb, children }: PropsWithChildren<AuthCardProps>) 
     <>
       <View style={styles.brand}>
         <BrandMark />
-        <Text variant="caption">{blurb}</Text>
+        {blurb !== null && <Text variant="caption">{blurb}</Text>}
       </View>
       <View style={[styles.card, isDesktop && styles.cardDesktop]}>{children}</View>
     </>
