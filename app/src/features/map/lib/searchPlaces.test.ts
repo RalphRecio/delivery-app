@@ -68,3 +68,59 @@ describe('searchPlaces', () => {
     expect(url.searchParams.get('viewbox')).toBe('123.4,10.8,124.4,9.8');
   });
 });
+
+describe('searchPlaces with a Plus Code', () => {
+  function mockNominatim(resultsByQuery: Record<string, unknown[]>) {
+    const fetchMock = jest.fn<
+      Promise<{ ok: boolean; json: () => Promise<unknown[]> }>,
+      [string, RequestInit?]
+    >(async (url) => ({
+      ok: true,
+      json: async () => resultsByQuery[new URL(url).searchParams.get('q') ?? ''] ?? [],
+    }));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    return fetchMock;
+  }
+
+  it('resolves a short code against the town after it, ignoring the noisy barangay part', async () => {
+    const fetchMock = mockNominatim({
+      'Parang, Maguindanao del Norte': [
+        { place_id: 9, lat: '7.3755802', lon: '124.267482', display_name: 'Parang' },
+      ],
+    });
+
+    const [suggestion, ...rest] = await searchPlaces(
+      '97G7+7RG, Brgy, Poblacion, ll, Parang, Maguindanao del Norte',
+      { latitude: 10.3, longitude: 123.9 },
+    );
+
+    expect(rest).toEqual([]);
+    expect(suggestion?.title).toBe('97G7+7RG');
+    expect(suggestion?.subtitle).toBe('Brgy, Poblacion, ll, Parang, Maguindanao del Norte');
+    expect(suggestion?.point.latitude).toBeCloseTo(7.37, 1);
+    expect(suggestion?.point.longitude).toBeCloseTo(124.26, 1);
+    // The code itself never goes to Nominatim, which cannot read it.
+    expect(fetchMock.mock.calls.map(([url]) => new URL(url).searchParams.get('q'))).toEqual([
+      'Parang, Maguindanao del Norte',
+    ]);
+  });
+
+  it('falls back to the current point when no town is given', async () => {
+    const fetchMock = mockNominatim({});
+
+    const [suggestion] = await searchPlaces('97G7+7RG', { latitude: 7.4, longitude: 124.3 });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(suggestion?.point.latitude).toBeCloseTo(7.37, 1);
+  });
+
+  it('decodes a full code without any network call', async () => {
+    const fetchMock = mockNominatim({});
+
+    const [suggestion] = await searchPlaces('8FVC9G8F+6X', null);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(suggestion?.point.latitude).toBeCloseTo(47.3655625, 6);
+  });
+});
