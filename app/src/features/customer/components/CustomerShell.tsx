@@ -6,7 +6,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { APP_NAME } from '@/config/brand';
 import { colors, fontSize, radius, spacing } from '@/config/theme';
 import { useCurrentUser, useLogout } from '@/features/auth';
-import { Button, Text } from '@/shared/ui';
+import { Button, Logo, Text } from '@/shared/ui';
 
 import { CUSTOMER_TABS, isTabActive } from '../lib/tabs';
 
@@ -31,9 +31,7 @@ export function CustomerShell({ children }: PropsWithChildren) {
             onPress={() => router.push('/customer')}
             style={styles.brand}
           >
-            <View style={styles.logo}>
-              <Ionicons name="bicycle" size={20} color={colors.onPrimary} />
-            </View>
+            <Logo size={34} />
             <Text style={styles.brandName}>{APP_NAME}</Text>
           </Pressable>
           <View style={styles.links}>
@@ -98,14 +96,6 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   brand: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  logo: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.sm,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   brandName: { fontWeight: '700', fontSize: fontSize.md },
   links: { flex: 1, flexDirection: 'row', gap: spacing.xs },
   link: {

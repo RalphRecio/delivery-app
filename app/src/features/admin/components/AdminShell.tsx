@@ -6,7 +6,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { adminColors, adminFontSize } from '@/config/adminTheme';
 import { APP_NAME } from '@/config/brand';
 import { formatPhilippineMobile, useCurrentUser, useLogout } from '@/features/auth';
-import { Text } from '@/shared/ui';
+import { Logo, Text } from '@/shared/ui';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -100,9 +100,7 @@ export function AdminShell({ children }: PropsWithChildren) {
           onPress={() => router.push('/admin')}
           style={({ pressed }) => [styles.brand, pressed && styles.rowPressed]}
         >
-          <View style={styles.logo}>
-            <Ionicons name="bicycle" size={18} color={adminColors.brand} />
-          </View>
+          <Logo size={32} />
           <View style={styles.brandText}>
             <Text style={styles.brandName} numberOfLines={1}>
               {APP_NAME}
@@ -214,16 +212,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: adminColors.border,
-  },
-  logo: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: adminColors.border,
-    backgroundColor: adminColors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   brandText: { flex: 1 },
   brandName: { fontSize: adminFontSize.base, fontWeight: '600', color: adminColors.text },

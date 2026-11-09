@@ -8,6 +8,7 @@ export { FilterChips, type ChipOption } from './FilterChips';
 export { Disclosure } from './Disclosure';
 export { EmptyState } from './EmptyState';
 export { Input } from './Input';
+export { Logo } from './Logo';
 export { Pagination } from './Pagination';
 export { Screen } from './Screen';
 export { ScreenHeader } from './ScreenHeader';
