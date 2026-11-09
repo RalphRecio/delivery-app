@@ -7,16 +7,27 @@
 # Host ports are offset (5440 / 6390) so they never collide with other local projects;
 # the API (8000) and the app (8082) keep the ports the host-run servers used, so the
 # dev tunnel and the app's .env keep working either way.
+# Every port is bound to 127.0.0.1: Docker's published ports bypass host firewalls
+# (UFW), so a bare "5440:5432" exposes the database to the internet. Outside
+# access goes through the host's nginx reverse proxy only.
+#
+# Passwords come from the root .env (gitignored, see .env.example), which Compose
+# reads automatically. The fallbacks keep a fresh clone working for local dev;
+# any server reachable from a network must set real values.
+# restart: unless-stopped brings services back after a crash or a reboot.
 services:
   postgres:
     image: imresamu/postgis:17-3.5
     container_name: delivery-app-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: delivery_app
       POSTGRES_USER: delivery
-      POSTGRES_PASSWORD: secret
+      # Applied only when the data volume is first created; to rotate an existing
+      # database, run ALTER USER inside the container and then update .env.
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
     ports:
-      - "5440:5432"
+      - "127.0.0.1:5440:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -29,12 +40,17 @@ services:
   redis:
     image: redis:7-alpine
     container_name: delivery-app-redis
+    restart: unless-stopped
+    # $$ defers expansion to the container shell; no password set means no auth.
+    command: sh -c 'exec redis-server $${REDIS_PASSWORD:+--requirepass "$$REDIS_PASSWORD"}'
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
-      - "6390:6379"
+      - "127.0.0.1:6390:6379"
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli $${REDIS_PASSWORD:+-a \"$$REDIS_PASSWORD\" --no-auth-warning} ping | grep -q PONG"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -51,6 +67,7 @@ services:
       dockerfile: docker/php/Dockerfile
     image: delivery-app-php
     container_name: delivery-app-api
+    restart: unless-stopped
     command: php artisan serve --host=0.0.0.0 --port=8000 --no-reload
     working_dir: /var/www/html
     environment: &php-env
@@ -58,10 +75,12 @@ services:
       DB_PORT: 5432
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
     volumes:
       - ./backend:/var/www/html
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -110,6 +129,7 @@ services:
       dockerfile: docker/node/Dockerfile
     image: delivery-app-node
     container_name: delivery-app-web
+    restart: unless-stopped
     command: npx expo start --web --port 8082
     working_dir: /app
     environment:
@@ -121,7 +141,7 @@ services:
       - ./app:/app
       - app-node-modules:/app/node_modules
     ports:
-      - "8082:8082"
+      - "127.0.0.1:8082:8082"
     depends_on:
       api:
         condition: service_healthy
