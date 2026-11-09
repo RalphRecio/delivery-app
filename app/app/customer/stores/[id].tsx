@@ -6,7 +6,7 @@ import { offeringParams, resolveOffering, type ServiceOffering } from '@/feature
 import { spacing } from '@/config/theme';
 import { CartBar, ProductRow, useStore, type Store } from '@/features/store';
 import { useBreakpoint } from '@/shared/hooks/useBreakpoint';
-import { Alert, Badge, Button, Card, Screen, Text } from '@/shared/ui';
+import { ActionCard, Alert, Badge, Button, Card, Screen, Text } from '@/shared/ui';
 import { BackBar } from '@/shared/ui/BackBar';
 import { selectCartCount, selectCartSubtotalCentavos, useCartStore } from '@/stores/cartStore';
 
@@ -29,7 +29,10 @@ export default function StoreScreen() {
   return <StoreMenu id={id} offering={offering} />;
 }
 
-/** A store's menu of available items; adding one starts (or adds to) the order. */
+/**
+ * A store's menu of available items; adding one starts (or adds to) the order.
+ * A store without a menu yet still takes orders: the customer types the list.
+ */
 function StoreMenu({ id, offering }: { id: number; offering: ServiceOffering }) {
   const storesHref = { pathname: '/customer/stores', params: offeringParams(offering) } as const;
   const { isDesktop } = useBreakpoint();
@@ -64,6 +67,19 @@ function StoreMenu({ id, offering }: { id: number; offering: ServiceOffering }) 
   const continueToBooking = () =>
     router.push({ pathname: '/customer/bookings/new', params: offeringParams(offering) });
 
+  // Starts an order at this store with no menu lines; the booking form then
+  // asks for a typed list, and the store is still the pickup.
+  const typeOrder = (data: Store) => {
+    cart.startOrder({
+      id: data.id,
+      name: data.name,
+      address: data.address,
+      location: data.location,
+    });
+    continueToBooking();
+  };
+  const hasMenu = (store.data?.products ?? []).length > 0;
+
   const body = store.isPending ? (
     <Text variant="caption">Loading the menu…</Text>
   ) : store.isError ? (
@@ -81,22 +97,29 @@ function StoreMenu({ id, offering }: { id: number; offering: ServiceOffering }) 
       {store.data.landmark !== null && (
         <Text variant="caption">Landmark: {store.data.landmark}</Text>
       )}
-      <Text style={styles.cartTitle}>Available items</Text>
-      <Card>
-        {(store.data.products ?? []).map((product) => (
-          <ProductRow
-            key={product.id}
-            product={product}
-            quantity={quantityOf(product.id)}
-            onChange={(quantity) => change(store.data, product.id, quantity)}
-          />
-        ))}
-        {(store.data.products ?? []).length === 0 && (
-          <Text variant="caption">
-            Nothing available right now. Go back and describe what you need instead.
-          </Text>
-        )}
-      </Card>
+      {hasMenu ? (
+        <>
+          <Text style={styles.cartTitle}>Available items</Text>
+          <Card>
+            {(store.data.products ?? []).map((product) => (
+              <ProductRow
+                key={product.id}
+                product={product}
+                quantity={quantityOf(product.id)}
+                onChange={(quantity) => change(store.data, product.id, quantity)}
+              />
+            ))}
+          </Card>
+        </>
+      ) : (
+        <ActionCard
+          icon="create-outline"
+          title="Type your order"
+          description={`${store.data.name} has no menu in the app yet. List what you want and the rider buys it here.`}
+          actionLabel="Type my order"
+          onPress={() => typeOrder(store.data)}
+        />
+      )}
     </>
   );
 
@@ -115,7 +138,11 @@ function StoreMenu({ id, offering }: { id: number; offering: ServiceOffering }) 
           <Card>
             <Text style={styles.cartTitle}>Your order</Text>
             {count === 0 || !isThisStore ? (
-              <Text variant="caption">Tap + on a product to start your order.</Text>
+              <Text variant="caption">
+                {hasMenu
+                  ? 'Tap + on a product to start your order.'
+                  : 'Type what you want; the rider buys it at this store.'}
+              </Text>
             ) : (
               <>
                 <Text variant="caption">

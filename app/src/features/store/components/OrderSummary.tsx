@@ -11,7 +11,10 @@ interface OrderSummaryProps {
   editable?: boolean;
 }
 
-/** The store and the lines in the cart, with steppers, shown on the booking form. */
+/**
+ * The store and the lines in the cart, with steppers, shown on the booking form.
+ * A store without a menu has no lines: the customer types the list instead.
+ */
 export function OrderSummary({ onChangeStore, editable = true }: OrderSummaryProps) {
   const store = useCartStore((state) => state.store);
   const lines = useCartLines();
@@ -41,52 +44,60 @@ export function OrderSummary({ onChangeStore, editable = true }: OrderSummaryPro
         )}
       </View>
       <Text variant="caption">The rider picks up at this store; its address is the pickup.</Text>
-      <View style={styles.lines}>
-        {lines.map(({ product, quantity }) => (
-          <View
-            key={product.id}
-            style={styles.line}
-            accessibilityLabel={`Order line ${product.name}`}
-          >
-            <View style={styles.lineText}>
-              <Text style={styles.lineName}>{product.name}</Text>
-              <Text variant="caption">{formatMoney(product.priceCentavos)} each</Text>
-            </View>
-            {editable ? (
-              <View style={styles.stepper}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Remove one ${product.name}`}
-                  onPress={() => setQuantity(product, quantity - 1)}
-                  style={styles.stepButton}
-                >
-                  <Ionicons
-                    name={quantity === 1 ? 'trash-outline' : 'remove'}
-                    size={16}
-                    color={colors.primaryPressed}
-                  />
-                </Pressable>
-                <Text style={styles.quantity}>{quantity}</Text>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Add one more ${product.name}`}
-                  onPress={() => setQuantity(product, quantity + 1)}
-                  style={styles.stepButton}
-                >
-                  <Ionicons name="add" size={16} color={colors.primaryPressed} />
-                </Pressable>
+      {lines.length === 0 ? (
+        <Text variant="caption">Type what you want below and the rider buys it here.</Text>
+      ) : (
+        <>
+          <View style={styles.lines}>
+            {lines.map(({ product, quantity }) => (
+              <View
+                key={product.id}
+                style={styles.line}
+                accessibilityLabel={`Order line ${product.name}`}
+              >
+                <View style={styles.lineText}>
+                  <Text style={styles.lineName}>{product.name}</Text>
+                  <Text variant="caption">{formatMoney(product.priceCentavos)} each</Text>
+                </View>
+                {editable ? (
+                  <View style={styles.stepper}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove one ${product.name}`}
+                      onPress={() => setQuantity(product, quantity - 1)}
+                      style={styles.stepButton}
+                    >
+                      <Ionicons
+                        name={quantity === 1 ? 'trash-outline' : 'remove'}
+                        size={16}
+                        color={colors.primaryPressed}
+                      />
+                    </Pressable>
+                    <Text style={styles.quantity}>{quantity}</Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Add one more ${product.name}`}
+                      onPress={() => setQuantity(product, quantity + 1)}
+                      style={styles.stepButton}
+                    >
+                      <Ionicons name="add" size={16} color={colors.primaryPressed} />
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Text style={styles.quantity}>×{quantity}</Text>
+                )}
+                <Text style={styles.lineTotal}>
+                  {formatMoney(product.priceCentavos * quantity)}
+                </Text>
               </View>
-            ) : (
-              <Text style={styles.quantity}>×{quantity}</Text>
-            )}
-            <Text style={styles.lineTotal}>{formatMoney(product.priceCentavos * quantity)}</Text>
+            ))}
           </View>
-        ))}
-      </View>
-      <View style={styles.subtotal}>
-        <Text style={styles.subtotalLabel}>Items subtotal</Text>
-        <Text style={styles.subtotalValue}>{formatMoney(subtotal)}</Text>
-      </View>
+          <View style={styles.subtotal}>
+            <Text style={styles.subtotalLabel}>Items subtotal</Text>
+            <Text style={styles.subtotalValue}>{formatMoney(subtotal)}</Text>
+          </View>
+        </>
+      )}
     </Card>
   );
 }

@@ -257,6 +257,30 @@ it('refuses products that are not on the store menu and budgets below the subtot
     expect(Booking::query()->count())->toBe(0);
 });
 
+it('orders a typed list from a store that has no menu yet', function (): void {
+    $store = Store::factory()->create(['name' => "Kok's Chicken House", 'landmark' => 'Plus Code 97J8+7WQ Parang']);
+
+    $this->postJson('/api/v1/customer/bookings/pabili', [
+        'store_id' => $store->id,
+        'dropoff' => ['address' => 'Poblacion, Parang', 'latitude' => 7.3757, 'longitude' => 124.2668],
+        'pabili_category' => 'food',
+        'items' => [
+            ['name' => 'Fried chicken, 1 whole', 'quantity' => 1, 'note' => 'spicy'],
+            ['name' => 'Rice', 'quantity' => 2],
+        ],
+        'purchase_budget' => '600',
+    ])
+        ->assertCreated()
+        ->assertJsonPath('data.store.name', "Kok's Chicken House")
+        ->assertJsonPath('data.pickup.address', $store->address)
+        ->assertJsonPath('data.pickup.landmark', 'Plus Code 97J8+7WQ Parang')
+        ->assertJsonPath('data.items.0.name', 'Fried chicken, 1 whole')
+        ->assertJsonPath('data.items.0.unit_price_centavos', null)
+        ->assertJsonPath('data.items.1.quantity', 2)
+        ->assertJsonPath('data.items_subtotal.centavos', 0)
+        ->assertJsonPath('data.purchase_budget.centavos', 60000);
+});
+
 it('books a pabili without a pickup: the rider chooses a store near the drop-off', function (): void {
     $response = $this->postJson('/api/v1/customer/bookings/pabili', [
         'dropoff' => ['address' => 'Ayala', 'latitude' => 10.3181, 'longitude' => 123.905],

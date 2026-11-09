@@ -96,8 +96,11 @@ export function BookingForm({
   const clearCart = useCartStore((state) => state.clear);
   // A store order: the cart has a store and the customer did not ask for the manual form.
   const isStoreOrder = serviceType === 'pabili' && !isManualPabili && cartStore !== null;
+  // A store order with nothing from the menu (the store has none yet, or the
+  // customer removed it all): the typed list is the order, as in a typed Pabili.
+  const hasMenuItems = isStoreOrder && cartCount > 0;
   const [values, setValues] = useState<FormValues>(() =>
-    isStoreOrder
+    hasMenuItems
       ? {
           ...INITIAL_VALUES,
           pabili_category: pabiliCategory,
@@ -251,7 +254,7 @@ export function BookingForm({
     <>
       {isPabili ? (
         <>
-          {isStoreOrder && (
+          {hasMenuItems && (
             <Text variant="caption">
               Need something that is not on the menu? Add it below and the rider will look for it.
             </Text>
@@ -262,8 +265,8 @@ export function BookingForm({
             errors={itemErrors(errors)}
             listError={errors.items}
             editable={!isBusy}
-            allowEmpty={isStoreOrder}
-            title={isStoreOrder ? 'Anything else from this store?' : pabiliCopy.listTitle}
+            allowEmpty={hasMenuItems}
+            title={hasMenuItems ? 'Anything else from this store?' : pabiliCopy.listTitle}
             itemPlaceholder={pabiliCopy.itemPlaceholder}
             notePlaceholder={pabiliCopy.notePlaceholder}
           />
@@ -275,7 +278,7 @@ export function BookingForm({
             onChangeText={(text) => edit('purchase_budget', text)}
             error={errors.purchase_budget}
             hint={
-              isStoreOrder
+              hasMenuItems
                 ? `At least the items subtotal of ${formatMoney(cartSubtotal)}; add room for extras. Reimbursed in cash on delivery.`
                 : pabiliCopy.budgetHint
             }
