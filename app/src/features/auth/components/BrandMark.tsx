@@ -1,20 +1,18 @@
 import { StyleSheet, View } from 'react-native';
 
 import { APP_NAME } from '@/config/brand';
-import { colors, fontSize, spacing } from '@/config/theme';
-import { Logo, Text } from '@/shared/ui';
+import { spacing } from '@/config/theme';
+import { Logo } from '@/shared/ui';
 
-/** The logo badge and wordmark that heads every auth page. */
+/** The logo badge that heads every auth page; the name is already printed inside it. */
 export function BrandMark() {
   return (
     <View style={styles.container} accessibilityRole="header" accessibilityLabel={APP_NAME}>
-      <Logo size={96} />
-      <Text style={styles.name}>{APP_NAME}</Text>
+      <Logo size={140} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { alignItems: 'center', gap: spacing.sm },
-  name: { fontSize: fontSize.lg, fontWeight: '800', color: colors.primaryDeep },
 });
