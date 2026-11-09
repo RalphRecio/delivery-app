@@ -121,6 +121,19 @@ export const createRiderFormSchema = z.object({
   password: z.string().min(PASSWORD_MIN_LENGTH, `Use at least ${PASSWORD_MIN_LENGTH} characters.`),
 });
 
+/** Admins can change fares, stores and accounts; the server enforces the same rule. */
+export const ADMIN_PASSWORD_MIN_LENGTH = 12;
+
+export const createAdminFormSchema = createRiderFormSchema.extend({
+  first_name: z.string().trim().min(1, "Enter the admin's first name.").max(60),
+  last_name: z.string().trim().min(1, "Enter the admin's last name.").max(60),
+  password: z
+    .string()
+    .min(ADMIN_PASSWORD_MIN_LENGTH, `Use at least ${ADMIN_PASSWORD_MIN_LENGTH} characters.`)
+    .regex(/[A-Za-z]/, 'Include at least one letter.')
+    .regex(/\d/, 'Include at least one number.'),
+});
+
 /** Store form: the pin is required; the address fills from it and may be edited. */
 export const storeFormSchema = z
   .object({

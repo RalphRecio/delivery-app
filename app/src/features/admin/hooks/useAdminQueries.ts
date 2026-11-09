@@ -16,6 +16,7 @@ import type {
   FareSetting,
   FareSettingInput,
   UserFilters,
+  CreateAdminInput,
   CreateRiderInput,
   AdminStore,
   AdminStoreProduct,
@@ -82,6 +83,28 @@ export function useCreateRider() {
       await queryClient.invalidateQueries({ queryKey: [...adminKeys.all, 'riders'] });
       await queryClient.invalidateQueries({ queryKey: [...adminKeys.all, 'users'] });
       await queryClient.invalidateQueries({ queryKey: adminKeys.dashboard() });
+    },
+  });
+}
+
+export function useCreateAdmin() {
+  const queryClient = useQueryClient();
+
+  return useMutation<AdminUser, ApiError, CreateAdminInput>({
+    mutationFn: adminApi.createAdmin,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: [...adminKeys.all, 'users'] });
+    },
+  });
+}
+
+export function useMakeAdmin() {
+  const queryClient = useQueryClient();
+
+  return useMutation<AdminUser, ApiError, number>({
+    mutationFn: adminApi.makeAdmin,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: [...adminKeys.all, 'users'] });
     },
   });
 }

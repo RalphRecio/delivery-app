@@ -25,6 +25,7 @@ import type {
   FareSettingInput,
   PageParams,
   UserFilters,
+  CreateAdminInput,
   CreateRiderInput,
   AdminStore,
   AdminStoreProduct,
@@ -71,7 +72,12 @@ export const adminApi = {
 
   createRider: (input: CreateRiderInput): Promise<AdminUser> =>
     apiRequest({ method: 'POST', url: '/admin/riders', data: input }, adminUserSchema),
+  createAdmin: (input: CreateAdminInput): Promise<AdminUser> =>
+    apiRequest({ method: 'POST', url: '/admin/admins', data: input }, adminUserSchema),
 
+  /** Customers only; they keep their password and sign in again as an admin. */
+  makeAdmin: (id: number): Promise<AdminUser> =>
+    apiRequest({ method: 'POST', url: `/admin/users/${id}/make-admin` }, adminUserSchema),
   setUserActivation: (id: number, isActive: boolean): Promise<AdminUser> =>
     apiRequest(
       { method: 'POST', url: `/admin/users/${id}/${isActive ? 'reactivate' : 'deactivate'}` },

@@ -7,6 +7,8 @@ import { Badge, Button, Text } from '@/shared/ui';
 import { useSetUserActivation } from '../hooks/useAdminQueries';
 import type { AdminRider, AdminUser } from '../types';
 
+import { MakeAdminButton } from './MakeAdminButton';
+
 interface UserRowProps {
   user: AdminUser | AdminRider;
   /** The signed-in admin cannot deactivate themselves. */
@@ -38,12 +40,17 @@ export function UserRow({ user, isSelf }: UserRowProps) {
         </View>
       </View>
       {!isSelf && (
-        <Button
-          variant="secondary"
-          label={user.is_active ? 'Deactivate' : 'Reactivate'}
-          onPress={() => activation.mutate({ id: user.id, isActive: !user.is_active })}
-          isLoading={activation.isPending}
-        />
+        <View style={styles.actions}>
+          <Button
+            variant="secondary"
+            label={user.is_active ? 'Deactivate' : 'Reactivate'}
+            onPress={() => activation.mutate({ id: user.id, isActive: !user.is_active })}
+            isLoading={activation.isPending}
+          />
+          {user.role === 'customer' && user.is_active && (
+            <MakeAdminButton userId={user.id} name={user.name ?? user.phone} />
+          )}
+        </View>
       )}
     </View>
   );
@@ -62,4 +69,5 @@ const styles = StyleSheet.create({
   text: { flex: 1, gap: spacing.xs },
   name: { fontWeight: '600' },
   badges: { flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap' },
+  actions: { gap: spacing.xs, alignItems: 'flex-end' },
 });

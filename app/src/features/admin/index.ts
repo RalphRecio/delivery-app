@@ -7,7 +7,7 @@ export {
   BookingTripPanel,
 } from './components/BookingPanels';
 export { BookingsTable } from './components/BookingsTable';
-export { CreateRiderForm } from './components/CreateRiderForm';
+export { ACCOUNT_COPY, CreateAccountForm, type StaffRole } from './components/CreateAccountForm';
 export { DispatchPanel } from './components/DispatchPanel';
 export { FareSettingForm } from './components/FareSettingForm';
 export { PageHeader } from './components/PageHeader';

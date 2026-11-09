@@ -24,6 +24,8 @@ Route::put('fare-settings/{serviceType}', [FareSettingController::class, 'update
 Route::get('users', [UserController::class, 'index'])->name('users.index');
 Route::get('riders', [UserController::class, 'riders'])->name('riders.index');
 Route::post('riders', [UserController::class, 'storeRider'])->name('riders.store');
+Route::post('admins', [UserController::class, 'storeAdmin'])->name('admins.store');
+Route::post('users/{user}/make-admin', [UserController::class, 'makeAdmin'])->name('users.make-admin');
 Route::post('users/{user}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
 Route::post('users/{user}/reactivate', [UserController::class, 'reactivate'])->name('users.reactivate');
 

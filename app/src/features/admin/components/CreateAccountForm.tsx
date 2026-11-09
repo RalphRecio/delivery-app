@@ -5,12 +5,19 @@ import { spacing } from '@/config/theme';
 import { flattenIssues, PASSWORD_MIN_LENGTH, type FieldErrors } from '@/features/auth';
 import { Alert, Input } from '@/shared/ui';
 
-import { useCreateRider } from '../hooks/useAdminQueries';
-import { createRiderFormSchema } from '../schemas/adminSchemas';
-import type { CreateRiderFormValues } from '../types';
+import { useCreateAdmin, useCreateRider } from '../hooks/useAdminQueries';
+import {
+  ADMIN_PASSWORD_MIN_LENGTH,
+  createAdminFormSchema,
+  createRiderFormSchema,
+} from '../schemas/adminSchemas';
+import type { CreateAccountFormValues } from '../types';
 import { AdminButton, Panel } from '../ui';
 
-const EMPTY_VALUES: CreateRiderFormValues = {
+/** Accounts an admin provisions; customers sign up themselves. */
+export type StaffRole = 'rider' | 'admin';
+
+const EMPTY_VALUES: CreateAccountFormValues = {
   first_name: '',
   last_name: '',
   email: '',
@@ -18,26 +25,48 @@ const EMPTY_VALUES: CreateRiderFormValues = {
   password: '',
 };
 
-interface CreateRiderFormProps {
+/** What differs between the two account types; the fields themselves are the same. */
+export const ACCOUNT_COPY = {
+  rider: {
+    title: 'Add a rider',
+    subtitle: 'Give the rider this email and password; they can change it later.',
+    passwordHint: `At least ${PASSWORD_MIN_LENGTH} characters.`,
+    submitLabel: 'Create rider',
+  },
+  admin: {
+    title: 'Add an admin',
+    subtitle:
+      'Admins can manage fares, stores, bookings and accounts. Share the password privately.',
+    passwordHint: `At least ${ADMIN_PASSWORD_MIN_LENGTH} characters, with letters and numbers.`,
+    submitLabel: 'Create admin',
+  },
+} as const satisfies Record<StaffRole, Record<string, string>>;
+
+interface CreateAccountFormProps {
+  role: StaffRole;
   /** `plain` renders the fields only, for a dialog that brings its own title. */
   layout?: 'panel' | 'plain';
-  /** Called after the rider is created, e.g. to close the dialog. */
+  /** Called after the account is created, e.g. to close the dialog. */
   onCreated?: () => void;
 }
 
-export function CreateRiderForm({ layout = 'panel', onCreated }: CreateRiderFormProps) {
-  const create = useCreateRider();
-  const [values, setValues] = useState<CreateRiderFormValues>(EMPTY_VALUES);
+export function CreateAccountForm({ role, layout = 'panel', onCreated }: CreateAccountFormProps) {
+  const createRider = useCreateRider();
+  const createAdmin = useCreateAdmin();
+  const create = role === 'admin' ? createAdmin : createRider;
+  const copy = ACCOUNT_COPY[role];
+  const [values, setValues] = useState<CreateAccountFormValues>(EMPTY_VALUES);
   const [errors, setErrors] = useState<FieldErrors>({});
 
-  const edit = (field: keyof CreateRiderFormValues, value: string) => {
+  const edit = (field: keyof CreateAccountFormValues, value: string) => {
     setValues((current) => ({ ...current, [field]: value }));
     setErrors({});
     create.reset();
   };
 
   const submit = () => {
-    const parsed = createRiderFormSchema.safeParse(values);
+    const schema = role === 'admin' ? createAdminFormSchema : createRiderFormSchema;
+    const parsed = schema.safeParse(values);
 
     if (!parsed.success) {
       setErrors(flattenIssues(parsed.error));
@@ -45,17 +74,21 @@ export function CreateRiderForm({ layout = 'panel', onCreated }: CreateRiderForm
       return;
     }
 
-    create.mutate(parsed.data, {
-      onSuccess: () => {
-        setValues(EMPTY_VALUES);
-        onCreated?.();
-      },
-    });
+    const onSuccess = () => {
+      setValues(EMPTY_VALUES);
+      onCreated?.();
+    };
+
+    if (role === 'admin') {
+      createAdmin.mutate(parsed.data, { onSuccess });
+    } else {
+      createRider.mutate(parsed.data, { onSuccess });
+    }
   };
 
-  const fieldError = (field: keyof CreateRiderFormValues) =>
+  const fieldError = (field: keyof CreateAccountFormValues) =>
     errors[field] ?? create.error?.fieldError(field);
-  const hasFieldError = (Object.keys(EMPTY_VALUES) as (keyof CreateRiderFormValues)[]).some(
+  const hasFieldError = (Object.keys(EMPTY_VALUES) as (keyof CreateAccountFormValues)[]).some(
     (field) => fieldError(field) !== undefined,
   );
 
@@ -106,11 +139,16 @@ export function CreateRiderForm({ layout = 'panel', onCreated }: CreateRiderForm
         value={values.password}
         onChangeText={(text) => edit('password', text)}
         error={fieldError('password')}
-        hint={`At least ${PASSWORD_MIN_LENGTH} characters.`}
+        hint={copy.passwordHint}
       />
       {create.isError && !hasFieldError && <Alert tone="error" message={create.error.message} />}
       {create.isSuccess && <Alert message={`${create.data.name} can now sign in.`} />}
-      <AdminButton size="lg" label="Create rider" onPress={submit} isLoading={create.isPending} />
+      <AdminButton
+        size="lg"
+        label={copy.submitLabel}
+        onPress={submit}
+        isLoading={create.isPending}
+      />
     </>
   );
 
@@ -119,10 +157,7 @@ export function CreateRiderForm({ layout = 'panel', onCreated }: CreateRiderForm
   }
 
   return (
-    <Panel
-      title="Add a rider"
-      subtitle="Give the rider this email and password; they can change it later."
-    >
+    <Panel title={copy.title} subtitle={copy.subtitle}>
       {fields}
     </Panel>
   );

@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Domain\Auth\Actions\CreateAdminAccountAction;
 use App\Domain\Auth\Actions\CreateRiderAccountAction;
+use App\Domain\Auth\Actions\PromoteCustomerToAdminAction;
 use App\Domain\Auth\Actions\SetUserActivationAction;
 use App\Domain\Auth\Enums\UserRole;
 use App\Domain\Auth\Models\User;
 use App\Domain\Booking\Enums\BookingStatus;
 use App\Domain\Booking\Models\Booking;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\CreateAdminRequest;
 use App\Http\Requests\Admin\CreateRiderRequest;
 use App\Http\Requests\Admin\ListUsersRequest;
 use App\Http\Resources\RiderResource;
@@ -64,6 +67,18 @@ final class UserController extends Controller
         $rider = $createRider->handle($this->admin($request), $request->toData());
 
         return UserResource::make($rider)->response()->setStatusCode(Response::HTTP_CREATED);
+    }
+
+    public function storeAdmin(CreateAdminRequest $request, CreateAdminAccountAction $createAdmin): JsonResponse
+    {
+        $newAdmin = $createAdmin->handle($this->admin($request), $request->toData());
+
+        return UserResource::make($newAdmin)->response()->setStatusCode(Response::HTTP_CREATED);
+    }
+
+    public function makeAdmin(Request $request, User $user, PromoteCustomerToAdminAction $promote): UserResource
+    {
+        return UserResource::make($promote->handle($this->admin($request), $user));
     }
 
     public function deactivate(Request $request, User $user, SetUserActivationAction $setActivation): UserResource

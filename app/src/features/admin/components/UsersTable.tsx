@@ -1,8 +1,13 @@
+import { StyleSheet, View } from 'react-native';
+
+import { spacing } from '@/config/theme';
 import { formatPhilippineMobile } from '@/features/auth';
 import type { PaginationMeta } from '@/shared/types/api';
 import { DataTable, dataTableText, Pagination, Text, type DataTableColumn } from '@/shared/ui';
 
 import { useSetUserActivation } from '../hooks/useAdminQueries';
+
+import { MakeAdminButton } from './MakeAdminButton';
 import type { AdminRider, AdminUser } from '../types';
 import { AdminButton, StatusPill } from '../ui';
 
@@ -92,12 +97,17 @@ export function UsersTable({
         u.id === selfId ? (
           <Text style={dataTableText.secondary}>You</Text>
         ) : (
-          <AdminButton
-            variant="outline"
-            label={u.is_active ? 'Deactivate' : 'Reactivate'}
-            onPress={() => activation.mutate({ id: u.id, isActive: !u.is_active })}
-            isLoading={activation.isPending && activation.variables?.id === u.id}
-          />
+          <View style={styles.actions}>
+            <AdminButton
+              variant="outline"
+              label={u.is_active ? 'Deactivate' : 'Reactivate'}
+              onPress={() => activation.mutate({ id: u.id, isActive: !u.is_active })}
+              isLoading={activation.isPending && activation.variables?.id === u.id}
+            />
+            {u.role === 'customer' && u.is_active && (
+              <MakeAdminButton userId={u.id} name={u.name ?? u.phone} />
+            )}
+          </View>
         ),
     },
   ];
@@ -124,3 +134,7 @@ export function UsersTable({
     />
   );
 }
+
+const styles = StyleSheet.create({
+  actions: { gap: spacing.xs, alignItems: 'flex-start' },
+});

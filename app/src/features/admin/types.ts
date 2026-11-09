@@ -10,6 +10,7 @@ import type {
   dashboardSchema,
   fareSettingFormSchema,
   fareSettingSchema,
+  createAdminFormSchema,
   createRiderFormSchema,
   adminStoreProductSchema,
   adminStoreSchema,
@@ -42,7 +43,9 @@ export interface BookingFilters {
 }
 
 export type CreateRiderInput = z.output<typeof createRiderFormSchema>;
-export type CreateRiderFormValues = z.input<typeof createRiderFormSchema>;
+export type CreateAdminInput = z.output<typeof createAdminFormSchema>;
+/** Riders and admins are created with the same fields; only the rules differ. */
+export type CreateAccountFormValues = z.input<typeof createRiderFormSchema>;
 
 export type AdminStore = z.infer<typeof adminStoreSchema>;
 export type AdminStoreProduct = z.infer<typeof adminStoreProductSchema>;

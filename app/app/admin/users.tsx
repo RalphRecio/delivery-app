@@ -6,7 +6,8 @@ import { spacing } from '@/config/theme';
 import {
   AdminButton,
   AdminModal,
-  CreateRiderForm,
+  ACCOUNT_COPY,
+  CreateAccountForm,
   Panel,
   SearchField,
   UnderlineTabs,
@@ -14,6 +15,7 @@ import {
   UsersTable,
   useAdminRiders,
   useAdminUsers,
+  type StaffRole,
 } from '@/features/admin';
 import { useCurrentUser } from '@/features/auth';
 import { useBreakpoint } from '@/shared/hooks/useBreakpoint';
@@ -35,7 +37,10 @@ export default function UsersScreen() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(isDesktop ? 10 : 25);
-  const [isAddingRider, setIsAddingRider] = useState(false);
+  // Which account the "New …" dialog is creating; null while it is closed.
+  const [adding, setAdding] = useState<StaffRole | null>(null);
+  // The Customers tab has no add button: customers sign up themselves.
+  const tabRole: StaffRole | null = tab === 'riders' ? 'rider' : tab === 'admins' ? 'admin' : null;
   const debouncedSearch = useDebouncedValue(search.trim());
   const term = debouncedSearch === '' ? undefined : debouncedSearch;
 
@@ -78,8 +83,12 @@ export default function UsersScreen() {
                 onChangeText={changeSearch}
               />
             </View>
-            {tab === 'riders' && (
-              <AdminButton icon="add" label="New rider" onPress={() => setIsAddingRider(true)} />
+            {tabRole !== null && (
+              <AdminButton
+                icon="add"
+                label={tabRole === 'admin' ? 'New admin' : 'New rider'}
+                onPress={() => setAdding(tabRole)}
+              />
             )}
           </View>
           <UsersTable
@@ -96,14 +105,19 @@ export default function UsersScreen() {
           />
         </Panel>
         <AdminModal
-          isOpen={isAddingRider}
-          title="Add a rider"
-          subtitle="Give the rider this email and password; they can change it later."
-          onClose={() => setIsAddingRider(false)}
+          isOpen={adding !== null}
+          title={adding === null ? '' : ACCOUNT_COPY[adding].title}
+          subtitle={adding === null ? undefined : ACCOUNT_COPY[adding].subtitle}
+          onClose={() => setAdding(null)}
         >
           {/* Re-mount on each open so a half-typed form from last time is cleared. */}
-          {isAddingRider && (
-            <CreateRiderForm layout="plain" onCreated={() => setIsAddingRider(false)} />
+          {adding !== null && (
+            <CreateAccountForm
+              key={adding}
+              role={adding}
+              layout="plain"
+              onCreated={() => setAdding(null)}
+            />
           )}
         </AdminModal>
       </View>
@@ -133,7 +147,7 @@ export default function UsersScreen() {
           <View style={styles.header}>
             <Button variant="secondary" label="Back" onPress={() => router.back()} />
             <Text variant="title">Riders & users</Text>
-            {tab === 'riders' && <CreateRiderForm />}
+            {tabRole !== null && <CreateAccountForm key={tabRole} role={tabRole} />}
             {filters}
           </View>
         }
